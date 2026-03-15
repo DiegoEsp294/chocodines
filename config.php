@@ -32,9 +32,9 @@ function getDB(): PDO {
         $user = getenv('DB_USER');
         $pass = getenv('DB_PASS');
     } else {
-        // Local
-        $dsn  = 'pgsql:host=localhost;port=5432;dbname=chocodine';
-        $user = 'postgres';
+        // Local XAMPP — MySQL
+        $dsn  = 'mysql:host=localhost;dbname=chocodine;charset=utf8mb4';
+        $user = 'root';
         $pass = '';
     }
 
