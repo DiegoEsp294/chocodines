@@ -24,11 +24,6 @@ $product = $stmt->fetch();
 
 if ($product) {
     $db->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
-
-    if (!empty($product['image']) && file_exists(UPLOAD_DIR . $product['image'])) {
-        unlink(UPLOAD_DIR . $product['image']);
-    }
-
     $_SESSION['flash'] = "Producto «{$product['name']}» eliminado.";
 }
 header('Location: dashboard.php');

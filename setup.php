@@ -16,7 +16,7 @@ try {
             name        VARCHAR(120)  NOT NULL,
             description TEXT          NOT NULL,
             price       NUMERIC(10,2) NOT NULL DEFAULT 0,
-            image       VARCHAR(255)           DEFAULT NULL,
+            image       TEXT                   DEFAULT NULL,
             category    VARCHAR(20)   NOT NULL DEFAULT 'Especial'
                             CHECK (category IN ('Chocolate','Vainilla','Frutas','Especial')),
             available   SMALLINT      NOT NULL DEFAULT 1,

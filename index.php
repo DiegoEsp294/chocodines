@@ -868,9 +868,9 @@ if ($conn) {
             <?php foreach ($products as $product): ?>
             <article class="product-card">
                 <div class="product-img-wrap">
-                    <?php if (!empty($product['image']) && file_exists(UPLOAD_DIR . $product['image'])): ?>
+                    <?php if (!empty($product['image'])): ?>
                         <img
-                            src="<?= htmlspecialchars(UPLOAD_URL . $product['image']) ?>"
+                            src="<?= $product['image'] ?>"
                             alt="<?= htmlspecialchars($product['name']) ?>"
                             loading="lazy"
                         >

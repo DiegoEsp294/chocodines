@@ -1,7 +1,4 @@
 <?php
-define('UPLOAD_DIR', __DIR__ . '/uploads/');
-define('UPLOAD_URL', 'uploads/');
-
 // En Render: configurar ADMIN_USER y ADMIN_PASS como variables de entorno.
 // Localmente usa estos valores por defecto (contraseña: chocodine2024).
 define('ADMIN_USER', getenv('ADMIN_USER') ?: 'admin');

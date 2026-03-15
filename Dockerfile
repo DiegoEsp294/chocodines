@@ -15,9 +15,4 @@ RUN sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
 # Copiar archivos de la aplicación
 COPY . /var/www/html/
 
-# Permisos para la carpeta de uploads
-RUN mkdir -p /var/www/html/uploads \
-    && chown -R www-data:www-data /var/www/html/uploads \
-    && chmod 755 /var/www/html/uploads
-
 EXPOSE 80

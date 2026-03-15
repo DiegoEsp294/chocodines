@@ -447,12 +447,8 @@ $products = $db->query("SELECT * FROM products ORDER BY created_at DESC")->fetch
                 <?php foreach ($products as $p): ?>
                 <tr>
                     <td>
-                        <?php if (!empty($p['image']) && file_exists(UPLOAD_DIR . $p['image'])): ?>
-                            <img
-                                src="../<?= htmlspecialchars(UPLOAD_URL . $p['image']) ?>"
-                                alt=""
-                                class="td-thumb"
-                            >
+                        <?php if (!empty($p['image'])): ?>
+                            <img src="<?= $p['image'] ?>" alt="" class="td-thumb">
                         <?php else: ?>
                             <div class="td-thumb-placeholder">🍰</div>
                         <?php endif; ?>

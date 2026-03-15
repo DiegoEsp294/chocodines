@@ -24,26 +24,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_numeric($price) || $price < 0)  $errors[] = 'El precio debe ser un número positivo.';
     if (!in_array($category, $validCats))   $errors[] = 'Categoría inválida.';
 
-    $imageName = null;
+    $imageData = null;
     if (!empty($_FILES['image']['name'])) {
-        $file    = $_FILES['image'];
-        $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-        if ($file['error'] !== UPLOAD_ERR_OK)         $errors[] = 'Error al subir la imagen.';
-        elseif (!in_array($ext, $allowed))             $errors[] = 'Formato no permitido (jpg, jpeg, png, webp).';
-        elseif ($file['size'] > 3 * 1024 * 1024)      $errors[] = 'La imagen no puede superar 3 MB.';
-        else $imageName = uniqid('prod_', true) . '.' . $ext;
+        $file     = $_FILES['image'];
+        $mimeMap  = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
+        $ext      = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if ($file['error'] !== UPLOAD_ERR_OK)        $errors[] = 'Error al subir la imagen.';
+        elseif (!isset($mimeMap[$ext]))              $errors[] = 'Formato no permitido (jpg, jpeg, png, webp).';
+        elseif ($file['size'] > 3 * 1024 * 1024)    $errors[] = 'La imagen no puede superar 3 MB.';
+        else {
+            $imageData = 'data:' . $mimeMap[$ext] . ';base64,' . base64_encode(file_get_contents($file['tmp_name']));
+        }
     }
 
     if (empty($errors)) {
-        if ($imageName) {
-            move_uploaded_file($_FILES['image']['tmp_name'], UPLOAD_DIR . $imageName);
-        }
         $db   = getDB();
         $stmt = $db->prepare(
             "INSERT INTO products (name, description, price, image, category, available) VALUES (?, ?, ?, ?, ?, ?)"
         );
-        $stmt->execute([$name, $description, (float)$price, $imageName, $category, $available]);
+        $stmt->execute([$name, $description, (float)$price, $imageData, $category, $available]);
         $_SESSION['flash'] = "Producto «{$name}» creado correctamente.";
         header('Location: dashboard.php');
         exit;

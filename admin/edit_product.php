@@ -36,29 +36,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_numeric($price) || $price < 0) $errors[] = 'El precio debe ser un número positivo.';
     if (!in_array($category, $validCats))  $errors[] = 'Categoría inválida.';
 
-    $newImage = null;
+    $newImageData = null;
     if (!empty($_FILES['image']['name'])) {
         $file    = $_FILES['image'];
+        $mimeMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
         $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-        if ($file['error'] !== UPLOAD_ERR_OK)         $errors[] = 'Error al subir la imagen.';
-        elseif (!in_array($ext, $allowed))             $errors[] = 'Formato no permitido (jpg, jpeg, png, webp).';
-        elseif ($file['size'] > 3 * 1024 * 1024)      $errors[] = 'La imagen no puede superar 3 MB.';
-        else $newImage = uniqid('prod_', true) . '.' . $ext;
+        if ($file['error'] !== UPLOAD_ERR_OK)       $errors[] = 'Error al subir la imagen.';
+        elseif (!isset($mimeMap[$ext]))             $errors[] = 'Formato no permitido (jpg, jpeg, png, webp).';
+        elseif ($file['size'] > 3 * 1024 * 1024)   $errors[] = 'La imagen no puede superar 3 MB.';
+        else {
+            $newImageData = 'data:' . $mimeMap[$ext] . ';base64,' . base64_encode(file_get_contents($file['tmp_name']));
+        }
     }
 
     if (empty($errors)) {
-        $imageName = $product['image']; // keep existing image by default
-
-        if ($newImage) {
-            // Upload new image
-            move_uploaded_file($_FILES['image']['tmp_name'], UPLOAD_DIR . $newImage);
-            // Delete old image if exists
-            if ($imageName && file_exists(UPLOAD_DIR . $imageName)) {
-                unlink(UPLOAD_DIR . $imageName);
-            }
-            $imageName = $newImage;
-        }
+        $imageName = $newImageData ?? $product['image']; // nueva imagen o conservar la existente
 
         $stmt = $db->prepare(
             "UPDATE products SET name=?, description=?, price=?, image=?, category=?, available=? WHERE id=?"
@@ -215,9 +207,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="form-group full">
                     <label for="image">Imagen del producto</label>
-                    <?php if (!empty($product['image']) && file_exists(UPLOAD_DIR . $product['image'])): ?>
+                    <?php if (!empty($product['image'])): ?>
                         <div class="current-image">
-                            <img src="../<?= htmlspecialchars(UPLOAD_URL . $product['image']) ?>" alt="Imagen actual">
+                            <img src="<?= $product['image'] ?>" alt="Imagen actual">
                             <p>Imagen actual · Subí una nueva para reemplazarla</p>
                         </div>
                     <?php endif; ?>
