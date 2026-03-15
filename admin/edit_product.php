@@ -9,7 +9,7 @@ require_once __DIR__ . '/../config.php';
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) { header('Location: dashboard.php'); exit; }
 
-$db = getDB();
+$db = requireDB();
 
 // Load existing product
 $stmt = $db->prepare("SELECT * FROM " . TBL_PRODUCTS . " WHERE id = ?");

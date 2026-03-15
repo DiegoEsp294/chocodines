@@ -6,7 +6,7 @@ if (empty($_SESSION['admin'])) {
 }
 require_once __DIR__ . '/../config.php';
 
-$db = getDB();
+$db = requireDB();
 
 // Toggle availability
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_id'])) {

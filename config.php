@@ -22,7 +22,7 @@ function getDB(): PDO {
         $user = $p['user'];
         $pass = rawurldecode($p['pass']);
     } elseif (getenv('DB_HOST')) {
-        // Render con variables individuales (DB_HOST, DB_NAME, etc.)
+        // Render con variables individuales
         $dsn  = sprintf(
             'pgsql:host=%s;port=%s;dbname=%s;sslmode=require',
             getenv('DB_HOST'),
@@ -44,7 +44,22 @@ function getDB(): PDO {
     ]);
 }
 
-// Conexión global para index.php
+function requireDB(): PDO {
+    try {
+        return getDB();
+    } catch (Exception $e) {
+        $msg = htmlspecialchars($e->getMessage());
+        die("
+            <div style='font-family:sans-serif;padding:2rem;background:#fdecea;color:#8b2020;border-left:4px solid #e53935;margin:2rem;border-radius:8px;'>
+                <strong>Error de conexión a la base de datos.</strong><br>
+                Verificá las variables de entorno DB_HOST, DB_NAME, DB_USER, DB_PASS en Render.<br>
+                <small style='opacity:.7'>{$msg}</small>
+            </div>
+        ");
+    }
+}
+
+// Conexión global para index.php (falla silenciosamente)
 try {
     $conn = getDB();
 } catch (Exception $e) {
