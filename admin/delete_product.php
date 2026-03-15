@@ -19,26 +19,17 @@ $db = getDB();
 
 // Get image filename before deleting
 $stmt = $db->prepare("SELECT name, image FROM products WHERE id = ?");
-$stmt->bind_param('i', $id);
-$stmt->execute();
-$product = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+$stmt->execute([$id]);
+$product = $stmt->fetch();
 
 if ($product) {
-    // Delete from DB
-    $stmt = $db->prepare("DELETE FROM products WHERE id = ?");
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $stmt->close();
+    $db->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
 
-    // Delete image file
     if (!empty($product['image']) && file_exists(UPLOAD_DIR . $product['image'])) {
         unlink(UPLOAD_DIR . $product['image']);
     }
 
     $_SESSION['flash'] = "Producto «{$product['name']}» eliminado.";
 }
-
-$db->close();
 header('Location: dashboard.php');
 exit;

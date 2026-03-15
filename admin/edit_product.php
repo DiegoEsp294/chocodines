@@ -13,10 +13,8 @@ $db = getDB();
 
 // Load existing product
 $stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
-$stmt->bind_param('i', $id);
-$stmt->execute();
-$product = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+$stmt->execute([$id]);
+$product = $stmt->fetch();
 
 if (!$product) { header('Location: dashboard.php'); exit; }
 
@@ -62,21 +60,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $imageName = $newImage;
         }
 
-        $priceF = (float)$price;
         $stmt = $db->prepare(
             "UPDATE products SET name=?, description=?, price=?, image=?, category=?, available=? WHERE id=?"
         );
-        $stmt->bind_param('ssdssii', $name, $description, $priceF, $imageName, $category, $available, $id);
-        $stmt->execute();
-        $stmt->close();
-        $db->close();
+        $stmt->execute([$name, $description, (float)$price, $imageName, $category, $available, $id]);
 
         $_SESSION['flash'] = "Producto «{$name}» actualizado correctamente.";
         header('Location: dashboard.php');
         exit;
     }
 }
-$db->close();
 ?>
 <!DOCTYPE html>
 <html lang="es">

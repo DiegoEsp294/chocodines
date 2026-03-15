@@ -39,15 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($imageName) {
             move_uploaded_file($_FILES['image']['tmp_name'], UPLOAD_DIR . $imageName);
         }
-        $db    = getDB();
-        $stmt  = $db->prepare(
+        $db   = getDB();
+        $stmt = $db->prepare(
             "INSERT INTO products (name, description, price, image, category, available) VALUES (?, ?, ?, ?, ?, ?)"
         );
-        $priceF = (float)$price;
-        $stmt->bind_param('ssdssi', $name, $description, $priceF, $imageName, $category, $available);
-        $stmt->execute();
-        $stmt->close();
-        $db->close();
+        $stmt->execute([$name, $description, (float)$price, $imageName, $category, $available]);
         $_SESSION['flash'] = "Producto «{$name}» creado correctamente.";
         header('Location: dashboard.php');
         exit;

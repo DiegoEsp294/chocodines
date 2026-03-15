@@ -4,13 +4,13 @@ require_once __DIR__ . '/config.php';
 // ── Fetch products ────────────────────────────────────────────────────────────
 $products = [];
 if ($conn) {
-    $res = $conn->query(
-        "SELECT * FROM `products` WHERE `available` = 1 ORDER BY `created_at` DESC"
-    );
-    if ($res) {
-        while ($row = $res->fetch_assoc()) {
-            $products[] = $row;
-        }
+    try {
+        $res = $conn->query(
+            "SELECT * FROM products WHERE available = 1 ORDER BY created_at DESC"
+        );
+        $products = $res->fetchAll();
+    } catch (Exception $e) {
+        // tabla aún no creada — redirigir a setup
     }
 }
 ?>
