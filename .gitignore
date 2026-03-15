@@ -1,0 +1,17 @@
+# Configuración local (contiene credenciales)
+config.php
+
+# Imágenes subidas por el admin (no van al repo)
+uploads/*
+!uploads/.gitkeep
+
+# Assets (el logo se sube manualmente al servidor)
+# assets/logo.png   ← descomentá esta línea si NO querés versionar el logo
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
