@@ -12,7 +12,7 @@ if (!$id) { header('Location: dashboard.php'); exit; }
 $db = getDB();
 
 // Load existing product
-$stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
+$stmt = $db->prepare("SELECT * FROM " . TBL_PRODUCTS . " WHERE id = ?");
 $stmt->execute([$id]);
 $product = $stmt->fetch();
 
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $imageName = $newImageData ?? $product['image']; // nueva imagen o conservar la existente
 
         $stmt = $db->prepare(
-            "UPDATE products SET name=?, description=?, price=?, image=?, category=?, available=? WHERE id=?"
+            "UPDATE " . TBL_PRODUCTS . " SET name=?, description=?, price=?, image=?, category=?, available=? WHERE id=?"
         );
         $stmt->execute([$name, $description, (float)$price, $imageName, $category, $available, $id]);
 

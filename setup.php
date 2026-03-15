@@ -11,7 +11,7 @@ try {
 
     // ── 1. Crear tabla products ───────────────────────────────────────────────
     $db->exec("
-        CREATE TABLE IF NOT EXISTS products (
+        CREATE TABLE IF NOT EXISTS chocodine_products (
             id          SERIAL PRIMARY KEY,
             name        VARCHAR(120)  NOT NULL,
             description TEXT          NOT NULL,
@@ -26,11 +26,11 @@ try {
     $messages[] = 'Tabla <strong>products</strong> lista.';
 
     // ── 2. Insertar productos de muestra (solo si está vacía) ─────────────────
-    $count = (int) $db->query("SELECT COUNT(*) FROM products")->fetchColumn();
+    $count = (int) $db->query("SELECT COUNT(*) FROM chocodine_products")->fetchColumn();
 
     if ($count === 0) {
         $stmt = $db->prepare("
-            INSERT INTO products (name, description, price, category, available)
+            INSERT INTO chocodine_products (name, description, price, category, available)
             VALUES (?, ?, ?, ?, 1)
         ");
 

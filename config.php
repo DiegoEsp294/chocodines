@@ -4,11 +4,14 @@
 define('ADMIN_USER', getenv('ADMIN_USER') ?: 'admin');
 define('ADMIN_PASS', getenv('ADMIN_PASS') ?: '$2y$10$o7dzuUtgR37qEJ3kabUvRONdHFM/qb8v.7lkWJQ4HwK8Ux5QUlZ8a');
 
+// Nombre de tabla (prefijado para convivir con otras apps en la misma BD)
+define('TBL_PRODUCTS', 'chocodine_products');
+
 function getDB(): PDO {
     $url = getenv('DATABASE_URL');
 
     if ($url) {
-        // Render provee: postgresql://user:pass@host:port/dbname
+        // Render: DATABASE_URL como postgresql://user:pass@host:port/dbname
         $p   = parse_url($url);
         $dsn = sprintf(
             'pgsql:host=%s;port=%d;dbname=%s;sslmode=require',
@@ -18,11 +21,21 @@ function getDB(): PDO {
         );
         $user = $p['user'];
         $pass = rawurldecode($p['pass']);
+    } elseif (getenv('DB_HOST')) {
+        // Render con variables individuales (DB_HOST, DB_NAME, etc.)
+        $dsn  = sprintf(
+            'pgsql:host=%s;port=%s;dbname=%s;sslmode=require',
+            getenv('DB_HOST'),
+            getenv('DB_PORT') ?: '5432',
+            getenv('DB_NAME')
+        );
+        $user = getenv('DB_USER');
+        $pass = getenv('DB_PASS');
     } else {
         // Local
         $dsn  = 'pgsql:host=localhost;port=5432;dbname=chocodine';
-        $user = getenv('DB_USER') ?: 'postgres';
-        $pass = getenv('DB_PASS') ?: '';
+        $user = 'postgres';
+        $pass = '';
     }
 
     return new PDO($dsn, $user, $pass, [

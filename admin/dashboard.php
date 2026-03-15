@@ -11,7 +11,7 @@ $db = getDB();
 // Toggle availability
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_id'])) {
     $id = (int)$_POST['toggle_id'];
-    $stmt = $db->prepare("UPDATE products SET available = 1 - available WHERE id = ?");
+    $stmt = $db->prepare("UPDATE " . TBL_PRODUCTS . " SET available = 1 - available WHERE id = ?");
     $stmt->execute([$id]);
     header('Location: dashboard.php');
     exit;
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_id'])) {
 $flash = $_SESSION['flash'] ?? '';
 unset($_SESSION['flash']);
 
-$products = $db->query("SELECT * FROM products ORDER BY created_at DESC")->fetchAll();
+$products = $db->query("SELECT * FROM " . TBL_PRODUCTS . " ORDER BY created_at DESC")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="es">

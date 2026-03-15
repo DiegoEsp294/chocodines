@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $db   = getDB();
         $stmt = $db->prepare(
-            "INSERT INTO products (name, description, price, image, category, available) VALUES (?, ?, ?, ?, ?, ?)"
+            "INSERT INTO " . TBL_PRODUCTS . " (name, description, price, image, category, available) VALUES (?, ?, ?, ?, ?, ?)"
         );
         $stmt->execute([$name, $description, (float)$price, $imageData, $category, $available]);
         $_SESSION['flash'] = "Producto «{$name}» creado correctamente.";

@@ -18,12 +18,12 @@ if (!$id) { header('Location: dashboard.php'); exit; }
 $db = getDB();
 
 // Get image filename before deleting
-$stmt = $db->prepare("SELECT name, image FROM products WHERE id = ?");
+$stmt = $db->prepare("SELECT name, image FROM " . TBL_PRODUCTS . " WHERE id = ?");
 $stmt->execute([$id]);
 $product = $stmt->fetch();
 
 if ($product) {
-    $db->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
+    $db->prepare("DELETE FROM " . TBL_PRODUCTS . " WHERE id = ?")->execute([$id]);
     $_SESSION['flash'] = "Producto «{$product['name']}» eliminado.";
 }
 header('Location: dashboard.php');

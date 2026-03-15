@@ -6,7 +6,7 @@ $products = [];
 if ($conn) {
     try {
         $res = $conn->query(
-            "SELECT * FROM products WHERE available = 1 ORDER BY created_at DESC"
+            "SELECT * FROM " . TBL_PRODUCTS . " WHERE available = 1 ORDER BY created_at DESC"
         );
         $products = $res->fetchAll();
     } catch (Exception $e) {
