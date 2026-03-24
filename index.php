@@ -1964,9 +1964,10 @@ document.querySelectorAll('.nav-links a').forEach(function(a) {
         ctx.closePath();
     }
 
-    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    // Dibuja texto multilínea; maxLines opcional — trunca con "…" si se excede
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
         var words = text.split(' ');
-        var line = '';
+        var line  = '';
         var lines = [];
         for (var n = 0; n < words.length; n++) {
             var testLine = line + words[n] + ' ';
@@ -1978,6 +1979,14 @@ document.querySelectorAll('.nav-links a').forEach(function(a) {
             }
         }
         if (line.trim()) lines.push(line.trim());
+        if (maxLines && lines.length > maxLines) {
+            lines = lines.slice(0, maxLines);
+            var last = lines[maxLines - 1];
+            while (ctx.measureText(last + '\u2026').width > maxWidth && last.length > 0) {
+                last = last.slice(0, -1);
+            }
+            lines[maxLines - 1] = last + '\u2026';
+        }
         lines.forEach(function(l, i) { ctx.fillText(l, x, y + i * lineHeight); });
         return lines.length;
     }
@@ -1995,67 +2004,57 @@ document.querySelectorAll('.nav-links a').forEach(function(a) {
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, W, H);
 
-        // Líneas de textura sutil
         ctx.strokeStyle = 'rgba(212,164,100,0.06)';
         ctx.lineWidth = 1;
         for (var i = 0; i < W; i += 80) {
             ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
         }
 
-        // ── Imagen del producto ────────────────────────────────────────────────
-        var IMG_H = Math.round(H * 0.63);
+        // ── Imagen — ocupa el 50% superior ────────────────────────────────────
+        var IMG_H = Math.round(H * 0.50); // 960px — deja 960px para el contenido
         if (img) {
             var scale = Math.max(W / img.naturalWidth, IMG_H / img.naturalHeight);
             var sw = img.naturalWidth  * scale;
             var sh = img.naturalHeight * scale;
             ctx.save();
-            ctx.rect(0, 0, W, IMG_H);
-            ctx.clip();
+            ctx.beginPath(); ctx.rect(0, 0, W, IMG_H); ctx.clip();
             ctx.drawImage(img, (W - sw) / 2, 0, sw, sh);
             ctx.restore();
         } else {
-            var ph = ctx.createLinearGradient(0, 0, W, IMG_H);
-            ph.addColorStop(0, '#3D1C02');
-            ph.addColorStop(1, '#5a2d0a');
-            ctx.fillStyle = ph;
+            ctx.fillStyle = '#3D1C02';
             ctx.fillRect(0, 0, W, IMG_H);
         }
 
-        // Degradado superior (para legibilidad del branding)
-        var topFade = ctx.createLinearGradient(0, 0, 0, 240);
-        topFade.addColorStop(0, 'rgba(10,3,0,0.80)');
+        // Degradado superior (branding legible)
+        var topFade = ctx.createLinearGradient(0, 0, 0, 210);
+        topFade.addColorStop(0, 'rgba(10,3,0,0.82)');
         topFade.addColorStop(1, 'rgba(10,3,0,0)');
         ctx.fillStyle = topFade;
-        ctx.fillRect(0, 0, W, 240);
+        ctx.fillRect(0, 0, W, 210);
 
         // Degradado inferior de la imagen
-        var botFade = ctx.createLinearGradient(0, IMG_H - 380, 0, IMG_H);
+        var botFade = ctx.createLinearGradient(0, IMG_H - 260, 0, IMG_H);
         botFade.addColorStop(0, 'rgba(19,6,0,0)');
         botFade.addColorStop(1, 'rgba(19,6,0,1)');
         ctx.fillStyle = botFade;
-        ctx.fillRect(0, IMG_H - 380, W, 380);
+        ctx.fillRect(0, IMG_H - 260, W, 260);
 
         // ── Branding superior ─────────────────────────────────────────────────
         ctx.textAlign   = 'center';
         ctx.shadowColor = 'rgba(0,0,0,0.9)';
-        ctx.shadowBlur  = 24;
+        ctx.shadowBlur  = 22;
+        ctx.font        = '700 66px "Dancing Script", cursive';
+        ctx.fillStyle   = '#F5E6D3';
+        ctx.fillText('Chocodine', W / 2, 100);
+        ctx.font        = '400 26px "Lato", sans-serif';
+        ctx.fillStyle   = '#D4A464';
+        ctx.fillText('BUDINES ARTESANALES', W / 2, 144);
+        ctx.shadowBlur  = 0;
 
-        ctx.font      = '700 72px "Dancing Script", cursive';
-        ctx.fillStyle = '#F5E6D3';
-        ctx.fillText('Chocodine', W / 2, 108);
+        // ── Área de contenido (960px disponibles) ─────────────────────────────
+        var cY = IMG_H + 42;
 
-        ctx.font      = '400 30px "Lato", sans-serif';
-        ctx.fillStyle = '#D4A464';
-        ctx.letterSpacing = '0.12em';
-        ctx.fillText('BUDINES ARTESANALES', W / 2, 158);
-        ctx.letterSpacing = '0';
-
-        ctx.shadowBlur = 0;
-
-        // ── Área de contenido ─────────────────────────────────────────────────
-        var cY = IMG_H + 55;
-
-        // Badge categoría
+        // Badge de categoría
         var catColors = {
             'Chocolate': { bg: '#3D1C02', txt: '#F5E6D3' },
             'Vainilla':  { bg: '#D4A464', txt: '#3D1C02' },
@@ -2063,62 +2062,55 @@ document.querySelectorAll('.nav-links a').forEach(function(a) {
             'Especial':  { bg: '#8B4513', txt: '#FFF8F0' }
         };
         var cc = catColors[category] || { bg: '#3D1C02', txt: '#F5E6D3' };
-        var bW = 280, bH = 58;
-        roundRect(ctx, (W - bW) / 2, cY, bW, bH, 29);
-        ctx.fillStyle = cc.bg;
-        ctx.fill();
-        ctx.font      = '700 26px "Lato", sans-serif';
+        var bW = 240, bH = 48;
+        roundRect(ctx, (W - bW) / 2, cY, bW, bH, 24);
+        ctx.fillStyle = cc.bg; ctx.fill();
+        ctx.font      = '700 23px "Lato", sans-serif';
         ctx.fillStyle = cc.txt;
-        ctx.fillText(category.toUpperCase(), W / 2, cY + 39);
-        cY += 100;
+        ctx.fillText(category.toUpperCase(), W / 2, cY + 33);
+        cY += 72;
 
         // Nombre del producto
-        ctx.shadowColor = 'rgba(0,0,0,0.6)';
-        ctx.shadowBlur  = 12;
-        ctx.font        = '700 88px "Playfair Display", serif';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
+        ctx.font        = '700 72px "Playfair Display", serif';
         ctx.fillStyle   = '#F5E6D3';
-        var nameLines   = wrapText(ctx, name, W / 2, cY, W - 140, 100);
-        cY += nameLines * 100 + 44;
+        var nameLines   = wrapText(ctx, name, W / 2, cY, W - 140, 82);
+        cY += nameLines * 82 + 32;
         ctx.shadowBlur  = 0;
 
-        // Ornamento divisor
-        var ox = W / 2;
-        ctx.strokeStyle = '#D4A464';
-        ctx.lineWidth   = 2.5;
-        ctx.beginPath(); ctx.moveTo(ox - 120, cY); ctx.lineTo(ox - 24, cY); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(ox + 24,  cY); ctx.lineTo(ox + 120, cY); ctx.stroke();
-        ctx.save();
-        ctx.translate(ox, cY);
-        ctx.rotate(Math.PI / 4);
-        ctx.fillStyle = '#D4A464';
-        ctx.fillRect(-9, -9, 18, 18);
-        ctx.restore();
-        cY += 58;
+        // Divisor ornamental
+        ctx.strokeStyle = '#D4A464'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(W/2 - 110, cY); ctx.lineTo(W/2 - 22, cY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W/2 + 22,  cY); ctx.lineTo(W/2 + 110, cY); ctx.stroke();
+        ctx.save(); ctx.translate(W/2, cY); ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = '#D4A464'; ctx.fillRect(-8, -8, 16, 16); ctx.restore();
+        cY += 46;
 
         // Precio
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur  = 18;
-        ctx.font        = '700 118px "Playfair Display", serif';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 14;
+        ctx.font        = '700 96px "Playfair Display", serif';
         ctx.fillStyle   = '#D4A464';
-        ctx.fillText('$' + Number(price).toLocaleString('es-AR'), W / 2, cY + 110);
+        ctx.fillText('$' + Number(price).toLocaleString('es-AR'), W / 2, cY + 86);
         ctx.shadowBlur  = 0;
+        ctx.font        = '300 32px "Lato", sans-serif';
+        ctx.fillStyle   = '#a07050';
+        ctx.fillText('por ' + unit, W / 2, cY + 132);
+        cY += 192;
 
-        ctx.font      = '300 36px "Lato", sans-serif';
-        ctx.fillStyle = '#a07050';
-        ctx.fillText('por ' + unit, W / 2, cY + 165);
-        cY += 240;
+        // Descripción — ocupa el espacio que queda antes del footer
+        var footerTop    = H - 88;
+        var descLineH    = 50;
+        var descMaxLines = Math.max(1, Math.floor((footerTop - cY - 16) / descLineH));
+        ctx.font         = '400 34px "Lato", sans-serif';
+        ctx.fillStyle    = '#c8a882';
+        wrapText(ctx, desc, W / 2, cY, W - 200, descLineH, descMaxLines);
 
-        // Descripción
-        ctx.font      = '400 40px "Lato", sans-serif';
-        ctx.fillStyle = '#c8a882';
-        wrapText(ctx, desc, W / 2, cY, W - 200, 60);
-
-        // ── Footer ────────────────────────────────────────────────────────────
-        ctx.font      = '400 28px "Lato", sans-serif';
+        // ── Footer (posición fija al pie) ─────────────────────────────────────
+        ctx.font      = '400 25px "Lato", sans-serif';
         ctx.fillStyle = 'rgba(212,164,100,0.40)';
-        ctx.fillText('Pedidos por WhatsApp', W / 2, H - 68);
+        ctx.fillText('Pedidos por WhatsApp', W / 2, H - 55);
         ctx.fillStyle = 'rgba(212,164,100,0.25)';
-        ctx.fillText('Los Telares, Santiago del Estero', W / 2, H - 32);
+        ctx.fillText('Los Telares, Santiago del Estero', W / 2, H - 26);
     }
 
     function downloadStory(name, desc, price, unit, category, imageSrc) {
