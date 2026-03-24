@@ -2068,7 +2068,7 @@ document.querySelectorAll('.nav-links a').forEach(function(a) {
         ctx.font      = '700 23px "Lato", sans-serif';
         ctx.fillStyle = cc.txt;
         ctx.fillText(category.toUpperCase(), W / 2, cY + 33);
-        cY += 72;
+        cY += bH + 60; // bH=48 + 60px gap → la baseline del nombre queda bien por debajo del badge
 
         // Nombre del producto
         ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
