@@ -363,6 +363,7 @@ if ($conn) {
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
     }
 
     .product-img-wrap img {
@@ -459,6 +460,56 @@ if ($conn) {
     .btn-pedido:hover {
         background: var(--brown);
         transform: scale(1.04);
+    }
+
+    /* ── Botón descargar story ─────────────────────────────────────────────── */
+    .btn-download-story {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(26, 8, 0, 0.68);
+        border: 1.5px solid rgba(212,164,100,0.45);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        transition: background .2s, transform .15s, border-color .2s;
+        z-index: 3;
+        color: #F5E6D3;
+        padding: 0;
+    }
+    .btn-download-story:hover {
+        background: rgba(26, 8, 0, 0.92);
+        border-color: rgba(212,164,100,0.8);
+        transform: scale(1.12);
+    }
+    .btn-download-story svg { pointer-events: none; }
+
+    .btn-download-story .dl-tooltip {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        right: 0;
+        background: rgba(26,8,0,0.9);
+        color: #F5E6D3;
+        font-family: 'Lato', sans-serif;
+        font-size: .72rem;
+        white-space: nowrap;
+        padding: .3rem .6rem;
+        border-radius: 6px;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: opacity .2s, transform .2s;
+        letter-spacing: .03em;
+    }
+    .btn-download-story:hover .dl-tooltip {
+        opacity: 1;
+        transform: translateY(0);
     }
 
     .empty-products {
@@ -1379,6 +1430,23 @@ if ($conn) {
                             alt="<?= htmlspecialchars($product['name']) ?>"
                             loading="lazy"
                         >
+                        <button
+                            class="btn-download-story"
+                            data-name="<?= htmlspecialchars($product['name'], ENT_QUOTES) ?>"
+                            data-desc="<?= htmlspecialchars($product['description'], ENT_QUOTES) ?>"
+                            data-price="<?= (int)$product['price'] ?>"
+                            data-unit="<?= htmlspecialchars($product['unit_label'] ?? 'unidad', ENT_QUOTES) ?>"
+                            data-cat="<?= htmlspecialchars($product['category'], ENT_QUOTES) ?>"
+                            title="Descargar para compartir"
+                            aria-label="Descargar imagen para compartir"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            <span class="dl-tooltip">Guardar &amp; compartir</span>
+                        </button>
                     <?php else: ?>
                         <div class="product-placeholder">
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
@@ -1876,6 +1944,223 @@ document.querySelectorAll('.nav-links a').forEach(function(a) {
     document.getElementById('lightbox-close').addEventListener('click', close);
     lb.addEventListener('click', function(e) { if (e.target === lb) close(); });
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
+})();
+
+// ── Descargar Story (WhatsApp / Instagram) ───────────────────────────────────
+(function() {
+    var W = 1080, H = 1920;
+
+    function roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+        var words = text.split(' ');
+        var line = '';
+        var lines = [];
+        for (var n = 0; n < words.length; n++) {
+            var testLine = line + words[n] + ' ';
+            if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                lines.push(line.trim());
+                line = words[n] + ' ';
+            } else {
+                line = testLine;
+            }
+        }
+        if (line.trim()) lines.push(line.trim());
+        lines.forEach(function(l, i) { ctx.fillText(l, x, y + i * lineHeight); });
+        return lines.length;
+    }
+
+    function drawStory(canvas, name, desc, price, unit, category, img) {
+        var ctx = canvas.getContext('2d');
+        canvas.width  = W;
+        canvas.height = H;
+
+        // ── Fondo ──────────────────────────────────────────────────────────────
+        var bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0,   '#130600');
+        bg.addColorStop(0.5, '#1e0a00');
+        bg.addColorStop(1,   '#0a0300');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Líneas de textura sutil
+        ctx.strokeStyle = 'rgba(212,164,100,0.06)';
+        ctx.lineWidth = 1;
+        for (var i = 0; i < W; i += 80) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
+        }
+
+        // ── Imagen del producto ────────────────────────────────────────────────
+        var IMG_H = Math.round(H * 0.63);
+        if (img) {
+            var scale = Math.max(W / img.naturalWidth, IMG_H / img.naturalHeight);
+            var sw = img.naturalWidth  * scale;
+            var sh = img.naturalHeight * scale;
+            ctx.save();
+            ctx.rect(0, 0, W, IMG_H);
+            ctx.clip();
+            ctx.drawImage(img, (W - sw) / 2, 0, sw, sh);
+            ctx.restore();
+        } else {
+            var ph = ctx.createLinearGradient(0, 0, W, IMG_H);
+            ph.addColorStop(0, '#3D1C02');
+            ph.addColorStop(1, '#5a2d0a');
+            ctx.fillStyle = ph;
+            ctx.fillRect(0, 0, W, IMG_H);
+        }
+
+        // Degradado superior (para legibilidad del branding)
+        var topFade = ctx.createLinearGradient(0, 0, 0, 240);
+        topFade.addColorStop(0, 'rgba(10,3,0,0.80)');
+        topFade.addColorStop(1, 'rgba(10,3,0,0)');
+        ctx.fillStyle = topFade;
+        ctx.fillRect(0, 0, W, 240);
+
+        // Degradado inferior de la imagen
+        var botFade = ctx.createLinearGradient(0, IMG_H - 380, 0, IMG_H);
+        botFade.addColorStop(0, 'rgba(19,6,0,0)');
+        botFade.addColorStop(1, 'rgba(19,6,0,1)');
+        ctx.fillStyle = botFade;
+        ctx.fillRect(0, IMG_H - 380, W, 380);
+
+        // ── Branding superior ─────────────────────────────────────────────────
+        ctx.textAlign   = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.9)';
+        ctx.shadowBlur  = 24;
+
+        ctx.font      = '700 72px "Dancing Script", cursive';
+        ctx.fillStyle = '#F5E6D3';
+        ctx.fillText('Chocodine', W / 2, 108);
+
+        ctx.font      = '400 30px "Lato", sans-serif';
+        ctx.fillStyle = '#D4A464';
+        ctx.letterSpacing = '0.12em';
+        ctx.fillText('BUDINES ARTESANALES', W / 2, 158);
+        ctx.letterSpacing = '0';
+
+        ctx.shadowBlur = 0;
+
+        // ── Área de contenido ─────────────────────────────────────────────────
+        var cY = IMG_H + 55;
+
+        // Badge categoría
+        var catColors = {
+            'Chocolate': { bg: '#3D1C02', txt: '#F5E6D3' },
+            'Vainilla':  { bg: '#D4A464', txt: '#3D1C02' },
+            'Frutas':    { bg: '#c2775a', txt: '#fff8f0' },
+            'Especial':  { bg: '#8B4513', txt: '#FFF8F0' }
+        };
+        var cc = catColors[category] || { bg: '#3D1C02', txt: '#F5E6D3' };
+        var bW = 280, bH = 58;
+        roundRect(ctx, (W - bW) / 2, cY, bW, bH, 29);
+        ctx.fillStyle = cc.bg;
+        ctx.fill();
+        ctx.font      = '700 26px "Lato", sans-serif';
+        ctx.fillStyle = cc.txt;
+        ctx.fillText(category.toUpperCase(), W / 2, cY + 39);
+        cY += 100;
+
+        // Nombre del producto
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur  = 12;
+        ctx.font        = '700 88px "Playfair Display", serif';
+        ctx.fillStyle   = '#F5E6D3';
+        var nameLines   = wrapText(ctx, name, W / 2, cY, W - 140, 100);
+        cY += nameLines * 100 + 44;
+        ctx.shadowBlur  = 0;
+
+        // Ornamento divisor
+        var ox = W / 2;
+        ctx.strokeStyle = '#D4A464';
+        ctx.lineWidth   = 2.5;
+        ctx.beginPath(); ctx.moveTo(ox - 120, cY); ctx.lineTo(ox - 24, cY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ox + 24,  cY); ctx.lineTo(ox + 120, cY); ctx.stroke();
+        ctx.save();
+        ctx.translate(ox, cY);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = '#D4A464';
+        ctx.fillRect(-9, -9, 18, 18);
+        ctx.restore();
+        cY += 58;
+
+        // Precio
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur  = 18;
+        ctx.font        = '700 118px "Playfair Display", serif';
+        ctx.fillStyle   = '#D4A464';
+        ctx.fillText('$' + Number(price).toLocaleString('es-AR'), W / 2, cY + 110);
+        ctx.shadowBlur  = 0;
+
+        ctx.font      = '300 36px "Lato", sans-serif';
+        ctx.fillStyle = '#a07050';
+        ctx.fillText('por ' + unit, W / 2, cY + 165);
+        cY += 240;
+
+        // Descripción
+        ctx.font      = '400 40px "Lato", sans-serif';
+        ctx.fillStyle = '#c8a882';
+        wrapText(ctx, desc, W / 2, cY, W - 200, 60);
+
+        // ── Footer ────────────────────────────────────────────────────────────
+        ctx.font      = '400 28px "Lato", sans-serif';
+        ctx.fillStyle = 'rgba(212,164,100,0.40)';
+        ctx.fillText('Pedidos por WhatsApp', W / 2, H - 68);
+        ctx.fillStyle = 'rgba(212,164,100,0.25)';
+        ctx.fillText('Los Telares, Santiago del Estero', W / 2, H - 32);
+    }
+
+    function downloadStory(name, desc, price, unit, category, imageSrc) {
+        var canvas = document.createElement('canvas');
+
+        function render(img) {
+            drawStory(canvas, name, desc, price, unit, category, img);
+            var link = document.createElement('a');
+            link.download = name.toLowerCase().replace(/\s+/g, '_') + '_chocodine.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        if (imageSrc) {
+            var img = new Image();
+            img.onload  = function() { render(img); };
+            img.onerror = function() { render(null); };
+            // Si es base64 no hay problema de CORS
+            img.src = imageSrc;
+        } else {
+            render(null);
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.btn-download-story');
+        if (!btn) return;
+        e.stopPropagation();
+        e.preventDefault();
+
+        var card     = btn.closest('.product-card');
+        var imgEl    = card.querySelector('.product-img-wrap img');
+
+        downloadStory(
+            btn.dataset.name,
+            btn.dataset.desc,
+            btn.dataset.price,
+            btn.dataset.unit,
+            btn.dataset.cat,
+            imgEl ? imgEl.src : null
+        );
+    });
 })();
 </script>
 </body>
