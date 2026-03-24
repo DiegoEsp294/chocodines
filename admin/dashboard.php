@@ -17,18 +17,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_id'])) {
     exit;
 }
 
-// Approve / reject review
+// Review actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_action'])) {
     $rid    = (int)$_POST['review_id'];
     $action = $_POST['review_action'];
-    if ($action === 'approve') {
-        $db->prepare("UPDATE chocodine_reviews SET approved = 1 WHERE id = ?")->execute([$rid]);
-        $_SESSION['flash'] = 'Reseña aprobada.';
-    } elseif ($action === 'reject') {
+    if ($action === 'toggle') {
+        $db->prepare("UPDATE chocodine_reviews SET approved = 1 - approved WHERE id = ?")->execute([$rid]);
+        $_SESSION['flash'] = 'Visibilidad de reseña actualizada.';
+    } elseif ($action === 'delete') {
         $db->prepare("DELETE FROM chocodine_reviews WHERE id = ?")->execute([$rid]);
         $_SESSION['flash'] = 'Reseña eliminada.';
     }
-    header('Location: dashboard.php');
+    header('Location: dashboard.php#reviews-section');
     exit;
 }
 
@@ -37,11 +37,11 @@ unset($_SESSION['flash']);
 
 $products = $db->query("SELECT * FROM " . TBL_PRODUCTS . " ORDER BY created_at DESC")->fetchAll();
 
-$pending_reviews = [];
+$all_reviews    = [];
+$pending_count  = 0;
 try {
-    $pending_reviews = $db->query(
-        "SELECT * FROM chocodine_reviews WHERE approved = 0 ORDER BY created_at DESC"
-    )->fetchAll();
+    $all_reviews   = $db->query("SELECT * FROM chocodine_reviews ORDER BY created_at DESC")->fetchAll();
+    $pending_count = count(array_filter($all_reviews, fn($r) => !$r['approved']));
 } catch (Exception $e) { /* tabla aún no creada */ }
 ?>
 <!DOCTYPE html>
@@ -403,9 +403,9 @@ try {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
             Fotos de clientes
         </a>
-        <a href="#reviews-section" style="<?= count($pending_reviews) ? 'color:var(--caramel);font-weight:700;' : '' ?>">
+        <a href="#reviews-section" style="<?= $pending_count ? 'color:var(--caramel);font-weight:700;' : '' ?>">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Reseñas<?= count($pending_reviews) ? ' <span style="background:var(--caramel);color:#fff;border-radius:50px;padding:.1rem .5rem;font-size:.75rem;margin-left:.3rem;">' . count($pending_reviews) . '</span>' : '' ?>
+            Reseñas<?= $pending_count ? ' <span style="background:var(--caramel);color:#fff;border-radius:50px;padding:.1rem .5rem;font-size:.75rem;margin-left:.3rem;">' . $pending_count . '</span>' : '' ?>
         </a>
         <a href="../index.php" target="_blank" style="background:rgba(212,164,100,.15);color:var(--caramel);margin-top:.5rem;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
@@ -532,15 +532,21 @@ try {
     <!-- Reviews section -->
     <div id="reviews-section" style="margin-top:3rem;">
         <div class="page-header" style="margin-bottom:1rem;">
-            <h2 class="page-title" style="font-size:1.4rem;">Reseñas pendientes</h2>
+            <h2 class="page-title" style="font-size:1.4rem;">
+                Reseñas
+                <?php if ($pending_count): ?>
+                    <span style="background:var(--caramel);color:#fff;border-radius:50px;padding:.15rem .7rem;font-size:.75rem;margin-left:.6rem;font-family:'Lato',sans-serif;"><?= $pending_count ?> pendiente<?= $pending_count > 1 ? 's' : '' ?></span>
+                <?php endif; ?>
+            </h2>
         </div>
-        <?php if (empty($pending_reviews)): ?>
-            <p style="color:#a07050;font-style:italic;padding:1rem 0;">No hay reseñas pendientes de moderación.</p>
+        <?php if (empty($all_reviews)): ?>
+            <p style="color:#a07050;font-style:italic;padding:1rem 0;">Aún no hay reseñas.</p>
         <?php else: ?>
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
+                        <th>Estado</th>
                         <th>Nombre</th>
                         <th>Estrellas</th>
                         <th>Comentario</th>
@@ -549,24 +555,33 @@ try {
                     </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($pending_reviews as $rv): ?>
+                <?php foreach ($all_reviews as $rv): ?>
                 <tr>
+                    <td>
+                        <?php if ($rv['approved']): ?>
+                            <span class="status-dot status-on">Visible</span>
+                        <?php else: ?>
+                            <span class="status-dot status-off">Oculta</span>
+                        <?php endif; ?>
+                    </td>
                     <td><strong><?= htmlspecialchars($rv['name']) ?></strong></td>
                     <td style="color:#D4A464;font-size:1.1rem;"><?= str_repeat('★', (int)$rv['rating']) ?></td>
-                    <td style="max-width:340px;"><?= htmlspecialchars(mb_strimwidth($rv['comment'], 0, 120, '…')) ?></td>
+                    <td style="max-width:300px;"><?= htmlspecialchars(mb_strimwidth($rv['comment'], 0, 100, '…')) ?></td>
                     <td style="white-space:nowrap;font-size:.82rem;color:#a07050;"><?= date('d/m/Y H:i', strtotime($rv['created_at'])) ?></td>
                     <td>
                         <div class="td-actions">
                             <form method="POST" style="display:inline">
                                 <input type="hidden" name="review_id" value="<?= $rv['id'] ?>">
-                                <input type="hidden" name="review_action" value="approve">
-                                <button type="submit" class="btn btn-sm btn-toggle-off">Aprobar</button>
+                                <input type="hidden" name="review_action" value="toggle">
+                                <button type="submit" class="btn btn-sm <?= $rv['approved'] ? 'btn-toggle-on' : 'btn-toggle-off' ?>">
+                                    <?= $rv['approved'] ? 'Ocultar' : 'Publicar' ?>
+                                </button>
                             </form>
                             <form method="POST" style="display:inline"
-                                  onsubmit="return confirm('¿Eliminar esta reseña?')">
+                                  onsubmit="return confirm('¿Eliminar esta reseña permanentemente?')">
                                 <input type="hidden" name="review_id" value="<?= $rv['id'] ?>">
-                                <input type="hidden" name="review_action" value="reject">
-                                <button type="submit" class="btn btn-sm btn-delete">Rechazar</button>
+                                <input type="hidden" name="review_action" value="delete">
+                                <button type="submit" class="btn btn-sm btn-delete">Eliminar</button>
                             </form>
                         </div>
                     </td>
