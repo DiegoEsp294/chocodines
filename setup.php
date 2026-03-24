@@ -19,11 +19,17 @@ try {
             image       TEXT                   DEFAULT NULL,
             category    VARCHAR(20)   NOT NULL DEFAULT 'Especial'
                             CHECK (category IN ('Chocolate','Vainilla','Frutas','Especial')),
+            unit_label  VARCHAR(30)   NOT NULL DEFAULT 'unidad',
             available   SMALLINT      NOT NULL DEFAULT 1,
             created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     ");
     $messages[] = 'Tabla <strong>products</strong> lista.';
+
+    // Migración: agregar unit_label si no existe (instancias ya creadas)
+    try {
+        $db->exec("ALTER TABLE chocodine_products ADD COLUMN IF NOT EXISTS unit_label VARCHAR(30) NOT NULL DEFAULT 'unidad'");
+    } catch (Exception $e) { /* columna ya existe */ }
 
     // ── 2. Insertar productos de muestra (solo si está vacía) ─────────────────
     $count = (int) $db->query("SELECT COUNT(*) FROM chocodine_products")->fetchColumn();
@@ -62,6 +68,30 @@ try {
     } else {
         $messages[] = 'Los productos de muestra ya existen, no se insertaron duplicados.';
     }
+
+    // ── 3. Crear tabla customer_photos ───────────────────────────────────────
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS chocodine_customer_photos (
+            id         SERIAL PRIMARY KEY,
+            image      TEXT         NOT NULL,
+            caption    VARCHAR(140)          DEFAULT NULL,
+            created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+    $messages[] = 'Tabla <strong>customer_photos</strong> lista.';
+
+    // ── 4. Crear tabla reviews ────────────────────────────────────────────────
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS chocodine_reviews (
+            id         SERIAL PRIMARY KEY,
+            name       VARCHAR(80)  NOT NULL,
+            comment    TEXT         NOT NULL,
+            rating     SMALLINT     NOT NULL DEFAULT 5 CHECK (rating BETWEEN 1 AND 5),
+            approved   SMALLINT     NOT NULL DEFAULT 0,
+            created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+    $messages[] = 'Tabla <strong>reviews</strong> lista.';
 
 } catch (Exception $e) {
     $errors[] = 'Error: ' . $e->getMessage();

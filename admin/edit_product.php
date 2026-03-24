@@ -26,15 +26,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description'] ?? '');
     $price       = $_POST['price'] ?? '';
     $category    = $_POST['category'] ?? '';
+    $unit_label  = $_POST['unit_label'] ?? 'unidad';
     $available   = isset($_POST['available']) ? 1 : 0;
     $validCats   = ['Chocolate', 'Vainilla', 'Frutas', 'Especial'];
+    $validUnits  = ['unidad', 'media docena', 'docena'];
 
-    $v = array_merge($v, compact('name', 'description', 'price', 'category', 'available'));
+    $v = array_merge($v, compact('name', 'description', 'price', 'category', 'unit_label', 'available'));
 
     if (!$name)                             $errors[] = 'El nombre es obligatorio.';
     if (!$description)                      $errors[] = 'La descripción es obligatoria.';
     if (!is_numeric($price) || $price < 0) $errors[] = 'El precio debe ser un número positivo.';
     if (!in_array($category, $validCats))  $errors[] = 'Categoría inválida.';
+    if (!in_array($unit_label, $validUnits)) $unit_label = 'unidad';
 
     $newImageData = null;
     if (!empty($_FILES['image']['name'])) {
@@ -53,9 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $imageName = $newImageData ?? $product['image']; // nueva imagen o conservar la existente
 
         $stmt = $db->prepare(
-            "UPDATE " . TBL_PRODUCTS . " SET name=?, description=?, price=?, image=?, category=?, available=? WHERE id=?"
+            "UPDATE " . TBL_PRODUCTS . " SET name=?, description=?, price=?, image=?, category=?, unit_label=?, available=? WHERE id=?"
         );
-        $stmt->execute([$name, $description, (float)$price, $imageName, $category, $available, $id]);
+        $stmt->execute([$name, $description, (float)$price, $imageName, $category, $unit_label, $available, $id]);
 
         $_SESSION['flash'] = "Producto «{$name}» actualizado correctamente.";
         header('Location: dashboard.php');
@@ -202,6 +205,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select id="category" name="category">
                         <?php foreach (['Chocolate','Vainilla','Frutas','Especial'] as $cat): ?>
                             <option value="<?= $cat ?>" <?= $v['category'] === $cat ? 'selected' : '' ?>><?= $cat ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="unit_label">Se vende por *</label>
+                    <select id="unit_label" name="unit_label">
+                        <?php foreach (['unidad' => 'Unidad', 'media docena' => 'Media docena (6)', 'docena' => 'Docena (12)'] as $val => $lbl): ?>
+                            <option value="<?= $val ?>" <?= ($v['unit_label'] ?? 'unidad') === $val ? 'selected' : '' ?>><?= $lbl ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
